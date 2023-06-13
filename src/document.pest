@@ -1,0 +1,11 @@
+HEX = _{ 'a'..'f' | '0'..'9' }
+ESCAPED = _{ "\\" ~ ("<" | ">" | "\\" | "(" | ")") }
+CHAR = _{ " " | ASCII_ALPHANUMERIC | ESCAPED }
+
+document = { (rem ~ ("\n" | &EOI))* }
+	rem = { "<" ~ id ~ (" " | "\n") ~ content+ ~ ">" }
+		id = { HEX{8} }
+		content = { text | closure }
+			text = { CHAR+ }
+			closure = { "(" ~ group ~ ")[" ~ text ~ "]" }
+				group = { ASCII_ALPHA_UPPER+ }
