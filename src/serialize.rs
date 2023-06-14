@@ -7,15 +7,16 @@ use error::SerializeError;
 use std::{
     collections::BTreeMap,
     env::{self, join_paths},
+    ffi::OsStr,
     fs::{read_to_string, File},
     path::Path,
 };
 
 type Deck<'a> = BTreeMap<(&'a str, &'a str), Vec<&'a str>>;
 
-pub fn serialize<P: AsRef<Path>>(path: P) -> Result<(), SerializeError<Rule>> {
+pub fn serialize(path: &Path) -> Result<(), SerializeError<Rule>> {
     let dir_out = &env::var("REMEDY_DIR").map_err(|_| SerializeError::EnvironmentError)?;
-    let path_out = Path::new(dir_out).join("test");
+    let path_out = Path::new(dir_out).join(path.file_stem().unwrap_or(OsStr::new("")));
     let file_err = |e| SerializeError::FileError(e);
     let file_out = File::create(path_out).map_err(file_err)?;
     let str_in = read_to_string(path).map_err(file_err)?;
