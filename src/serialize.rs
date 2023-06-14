@@ -1,11 +1,27 @@
-use std::{collections::BTreeMap, fs::File};
+mod document;
+mod error;
 
-use super::{Closure, Content, Document, Group, Id, Text};
+use bincode::serialize_into;
+use document::{parse, Closure, Content, Document, Group, Id, Rule, Text};
+use error::SerializeError;
+use std::{
+    collections::BTreeMap,
+    env::{self, join_paths},
+    fs::{read_to_string, File},
+    path::Path,
+};
 
 type Deck<'a> = BTreeMap<(&'a str, &'a str), Vec<&'a str>>;
 
-pub fn serialize(file: File, document: Document) {
-    document.to_deck();
+pub fn serialize<P: AsRef<Path>>(path: P) -> Result<(), SerializeError<Rule>> {
+    let dir_out = &env::var("REMEDY_DIR").map_err(|_| SerializeError::EnvironmentError)?;
+    let path_out = Path::new(dir_out).join("test");
+    let file_err = |e| SerializeError::FileError(e);
+    let file_out = File::create(path_out).map_err(file_err)?;
+    let str_in = read_to_string(path).map_err(file_err)?;
+    let document = parse(str_in.as_str())?;
+    serialize_into(file_out, &document.to_deck()).map_err(|_| SerializeError::SerializeError)?;
+    Ok(())
 }
 
 impl Document<'_> {

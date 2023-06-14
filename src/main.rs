@@ -1,10 +1,32 @@
-mod document;
+mod serialize;
 
-use document::parse;
+use serialize::serialize;
+use std::{fs, io, path::Path};
 
-fn main() {
-    println!(
-        "{:?}",
-        parse("<c8f42950 (A)[Front] and (B)[back]>\n<d6fc2934 (A)[Only] one (A)[card]>")
-    );
+use clap::{Parser, Subcommand, ValueEnum};
+
+#[derive(Parser)]
+struct Args {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    Serialize(SerializeAction),
+}
+
+#[derive(clap::Args)]
+struct SerializeAction {
+    path: String,
+}
+
+fn main() -> Result<(), String> {
+    let args = Args::parse();
+
+    match args.command {
+        Command::Serialize(SerializeAction { path }) => {
+            serialize(Path::new(&path)).map_err(|e| format!("{}", e))
+        }
+    }
 }

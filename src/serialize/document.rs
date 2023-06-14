@@ -1,23 +1,19 @@
-use from_pest::{ConversionError, FromPest};
-use pest::{error::Error, Parser, Span};
+use super::SerializeError;
+use from_pest::FromPest;
+use pest::{Parser, Span};
 use pest_ast::FromPest;
 use pest_derive::Parser;
 
 #[derive(Parser)]
-#[grammar = "document.pest"]
+#[grammar = "serialize/document.pest"]
 struct DocumentParser;
 
-#[derive(Debug)]
-pub enum ParseError<Rule, FatalError> {
-    Error(Error<Rule>),
-    UnmatchingAstError(ConversionError<FatalError>),
-}
-
-pub fn parse(input: &str) -> Result<Document, ParseError<Rule, <Rem as FromPest>::FatalError>> {
+pub fn parse(input: &str) -> Result<Document, SerializeError<Rule>> {
     DocumentParser::parse(Rule::document, input)
-        .map_err(|e| ParseError::Error(e))
+        .map_err(|e| SerializeError::<Rule>::ParseError(e))
         .and_then(|mut pairs| {
-            Document::from_pest(&mut pairs).map_err(|c| ParseError::UnmatchingAstError(c))
+            Document::from_pest(&mut pairs)
+                .map_err(|c| SerializeError::<Rule>::UnmatchingGrammarError)
         })
 }
 
