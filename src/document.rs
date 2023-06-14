@@ -24,41 +24,41 @@ pub fn parse(input: &str) -> Result<Document, ParseError<Rule, <Rem as FromPest>
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::document))]
 pub struct Document<'pest> {
-    rems: Vec<Rem<'pest>>,
+    pub rems: Vec<Rem<'pest>>,
 }
 
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::rem))]
 pub struct Rem<'pest> {
-    id: Id<'pest>,
-    content: Vec<Content<'pest>>,
+    pub id: Id<'pest>,
+    pub content: Vec<Content<'pest>>,
 }
 
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::id))]
-struct Id<'pest>(#[pest_ast(outer(with(as_str)))] &'pest str);
+pub struct Id<'pest>(#[pest_ast(outer(with(as_str)))] pub &'pest str);
 
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::content))]
-enum Content<'pest> {
+pub enum Content<'pest> {
     Text(Text<'pest>),
     Closure(Closure<'pest>),
 }
 
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::text))]
-struct Text<'pest>(#[pest_ast(outer(with(as_str)))] &'pest str);
+pub struct Text<'pest>(#[pest_ast(outer(with(as_str)))] pub &'pest str);
 
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::closure))]
-struct Closure<'pest> {
-    group: Group<'pest>,
-    text: Text<'pest>,
+pub struct Closure<'pest> {
+    pub group: Group<'pest>,
+    pub text: Text<'pest>,
 }
 
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::group))]
-struct Group<'pest>(#[pest_ast(outer(with(as_str)))] &'pest str);
+pub struct Group<'pest>(#[pest_ast(outer(with(as_str)))] pub &'pest str);
 
 fn as_str(span: Span) -> &str {
     span.as_str()
