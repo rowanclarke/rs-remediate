@@ -1,6 +1,7 @@
 HEX = _{ 'a'..'f' | '0'..'9' }
-ESCAPED = _{ "\\" ~ ("<" | ">" | "\\" | "(" | ")") }
-CHAR = _{ " " | ASCII_ALPHANUMERIC | ESCAPED }
+ILLEGAL = _{ "\\" | "<" | ">" | "(" | ")" | "[" | "]" }
+ESCAPED = _{ "\\" ~ ILLEGAL }
+CHAR = _{ (!ILLEGAL ~ ASCII) | ESCAPED }
 
 document = { (rem ~ ("\n" | &EOI))* }
 	rem = { "<" ~ id ~ (" " | "\n") ~ content+ ~ ">" }

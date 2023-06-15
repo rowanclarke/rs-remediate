@@ -13,7 +13,7 @@ pub fn parse(input: &str) -> Result<Document, SerializeError<Rule>> {
         .map_err(|e| SerializeError::<Rule>::ParseError(e))
         .and_then(|mut pairs| {
             Document::from_pest(&mut pairs)
-                .map_err(|c| SerializeError::<Rule>::UnmatchingGrammarError)
+                .map_err(|_c| SerializeError::<Rule>::UnmatchingGrammarError)
         })
 }
 
