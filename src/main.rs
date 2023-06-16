@@ -7,8 +7,8 @@ use std::{collections::BTreeMap, path::Path};
 
 use clap::{Parser, Subcommand};
 
-type DeckBorrow<'a> = BTreeMap<(&'a str, &'a str), Vec<&'a str>>;
-type DeckOwned = BTreeMap<(String, String), Vec<String>>;
+type Deck<T> = BTreeMap<(T, T), Vec<T>>;
+type Answers<T> = BTreeMap<T, Vec<T>>;
 
 const REMEDY_DIR: &str = "REMEDY_DIR";
 

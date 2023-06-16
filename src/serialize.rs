@@ -1,9 +1,8 @@
 mod document;
 mod error;
 
-use crate::REMEDY_DIR;
+use crate::{Answers, Deck, REMEDY_DIR};
 
-use super::DeckBorrow;
 use bincode::serialize_into;
 use document::{parse, Closure, Content, Document, Group, Id, Rule, Text};
 use error::SerializeError;
@@ -22,13 +21,34 @@ pub fn serialize(path: &Path) -> Result<(), SerializeError<Rule>> {
     let file_out = File::create(path_out).map_err(file_err)?;
     let str_in = read_to_string(path).map_err(file_err)?;
     let document = parse(str_in.as_str())?;
-    serialize_into(file_out, &document.to_deck()).map_err(|_| SerializeError::SerializeError)?;
+    serialize_into(file_out, &(document.to_deck(), document.to_answers()))
+        .map_err(|_| SerializeError::SerializeError)?;
     Ok(())
 }
 
 impl Document<'_> {
-    fn to_deck(&self) -> DeckBorrow {
-        let mut deck: DeckBorrow = BTreeMap::new();
+    fn to_answers(&self) -> Answers<&str> {
+        let mut answers: Answers<&str> = BTreeMap::new();
+        for rem in self.rems.iter() {
+            let Id(id) = rem.id;
+            let vec: Vec<&str> = rem
+                .content
+                .iter()
+                .map(|content| match content {
+                    &Content::Closure(Closure {
+                        group: _,
+                        text: Text(t),
+                    })
+                    | &Content::Text(Text(t)) => t,
+                })
+                .collect();
+            answers.insert(id, vec);
+        }
+        answers
+    }
+
+    fn to_deck(&self) -> Deck<&str> {
+        let mut deck: Deck<&str> = BTreeMap::new();
         for rem in self.rems.iter() {
             let Id(id) = rem.id;
             let content = || rem.content.iter();
