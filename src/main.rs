@@ -1,14 +1,12 @@
+#![feature(extend_one)]
 mod learn;
 mod serialize;
 
 use learn::learn;
 use serialize::serialize;
-use std::{collections::BTreeMap, path::Path};
+use std::path::Path;
 
 use clap::{Parser, Subcommand};
-
-type Deck<T> = BTreeMap<(T, T), Vec<T>>;
-type Answers<T> = BTreeMap<T, Vec<T>>;
 
 const REMEDY_DIR: &str = "REMEDY_DIR";
 

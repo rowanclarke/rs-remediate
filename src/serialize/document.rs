@@ -1,3 +1,5 @@
+use std::{rc::Rc};
+
 use super::SerializeError;
 use from_pest::FromPest;
 use pest::{Parser, Span};
@@ -17,45 +19,111 @@ pub fn parse(input: &str) -> Result<Document, SerializeError<Rule>> {
         })
 }
 
+impl Document {
+    pub fn rems(&self) -> impl Iterator<Item = &Rem> + '_ {
+        self.rems.iter()
+    }
+}
+
+impl Rem {
+    pub fn id(&self) -> Rc<str> {
+        self.id.0.clone()
+    }
+
+    pub fn content(&self) -> impl Iterator<Item = &Content> + '_ {
+        self.content.iter()
+    }
+
+    pub fn children(&self) -> impl Iterator<Item = &Rem> + '_ {
+        self.children.iter()
+    }
+}
+
+impl Content {
+    pub fn text(&self) -> Rc<str> {
+        match self {
+            Self::Text(Text(text))
+            | Self::Closure(Closure {
+                location: _,
+                group: _,
+                text: Text(text),
+            }) => text.clone(),
+        }
+    }
+
+    pub fn closure(&self) -> Result<(usize, Rc<str>, Rc<str>), Rc<str>> {
+        match self {
+            Self::Closure(Closure {
+                location: Location(location),
+                group: Group(group),
+                text: Text(text),
+            }) => Ok((location.clone(), group.clone(), text.clone())),
+            Self::Text(Text(text)) => Err(text.clone()),
+        }
+    }
+
+    pub fn to_closure(location: usize, group: Rc<str>, text: Rc<str>) -> Self {
+        Self::Closure(Closure {
+            location: Location(location),
+            group: Group(group),
+            text: Text(text),
+        })
+    }
+
+    pub fn to_text(text: Rc<str>) -> Self {
+        Self::Text(Text(text))
+    }
+}
+
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::document))]
-pub struct Document<'pest> {
-    pub rems: Vec<Rem<'pest>>,
+pub struct Document {
+    rems: Vec<Rem>,
 }
 
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::rem))]
-pub struct Rem<'pest> {
-    pub id: Id<'pest>,
-    pub content: Vec<Content<'pest>>,
+pub struct Rem {
+    id: Id,
+    content: Vec<Content>,
+    children: Vec<Rem>,
 }
 
 #[derive(Debug, FromPest)]
 #[pest_ast(rule(Rule::id))]
-pub struct Id<'pest>(#[pest_ast(outer(with(as_str)))] pub &'pest str);
+pub struct Id(#[pest_ast(outer(with(as_str)))] Rc<str>);
 
-#[derive(Debug, FromPest)]
+#[derive(Debug, FromPest, Clone)]
 #[pest_ast(rule(Rule::content))]
-pub enum Content<'pest> {
-    Text(Text<'pest>),
-    Closure(Closure<'pest>),
+pub enum Content {
+    Text(Text),
+    Closure(Closure),
 }
 
-#[derive(Debug, FromPest)]
+#[derive(Debug, FromPest, Clone)]
 #[pest_ast(rule(Rule::text))]
-pub struct Text<'pest>(#[pest_ast(outer(with(as_str)))] pub &'pest str);
+pub struct Text(#[pest_ast(outer(with(as_str)))] Rc<str>);
 
-#[derive(Debug, FromPest)]
+#[derive(Debug, FromPest, Clone)]
 #[pest_ast(rule(Rule::closure))]
-pub struct Closure<'pest> {
-    pub group: Group<'pest>,
-    pub text: Text<'pest>,
+pub struct Closure {
+    location: Location,
+    group: Group,
+    text: Text,
 }
 
-#[derive(Debug, FromPest)]
-#[pest_ast(rule(Rule::group))]
-pub struct Group<'pest>(#[pest_ast(outer(with(as_str)))] pub &'pest str);
+#[derive(Debug, FromPest, Clone)]
+#[pest_ast(rule(Rule::location))]
+pub struct Location(#[pest_ast(outer(with(count)))] usize);
 
-fn as_str(span: Span) -> &str {
-    span.as_str()
+#[derive(Debug, FromPest, Clone)]
+#[pest_ast(rule(Rule::group))]
+pub struct Group(#[pest_ast(outer(with(as_str)))] Rc<str>);
+
+fn count(span: Span) -> usize {
+    span.as_str().len()
+}
+
+fn as_str(span: Span) -> Rc<str> {
+    span.as_str().into()
 }
