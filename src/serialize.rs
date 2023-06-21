@@ -5,22 +5,43 @@ use crate::REMEDY_DIR;
 
 use document::{parse, Content, Document, Rem, Rule};
 use error::SerializeError;
+use rkyv::{
+    ser::{
+        serializers::{AlignedSerializer, AllocScratch, CompositeSerializer, SharedSerializeMap},
+        Serializer,
+    },
+    util::AlignedVec,
+    Archive, Deserialize, Serialize,
+};
 use std::{
     collections::BTreeMap,
     env,
     ffi::OsStr,
     fs::{read_to_string, File},
+    io::Write,
     path::Path,
     rc::Rc,
 };
+
+type DocumentSerializer =
+    CompositeSerializer<AlignedSerializer<AlignedVec>, AllocScratch, SharedSerializeMap>;
 
 pub fn serialize(path: &Path) -> Result<(), SerializeError<Rule>> {
     let dir_out = &env::var(REMEDY_DIR).map_err(|_| SerializeError::EnvironmentError)?;
     let path_out = Path::new(&dir_out).join(path.file_stem().unwrap_or(OsStr::new("")));
     let file_err = |e| SerializeError::FileError(e);
-    let _file_out = File::create(path_out).map_err(file_err)?;
+    let mut file_out = File::create(path_out).map_err(file_err)?;
     let str_in = read_to_string(path).map_err(file_err)?;
-    let _document = parse(str_in.as_str())?;
+    let document = parse(str_in.as_str())?;
+
+    let mut serializer = DocumentSerializer::default();
+    serializer.serialize_value(&document.card_map()).unwrap();
+
+    let bytes = serializer.into_serializer().into_inner();
+    file_out
+        .write_all(&bytes[..])
+        .map_err(|_| SerializeError::SerializeError)?;
+
     //serialize_into(file_out, &document.serialize()).map_err(|_| SerializeError::SerializeError)?;
     Ok(())
 }
@@ -29,7 +50,7 @@ type RemContent = BTreeMap<Rc<str>, Vec<Content>>;
 type RemGroupCard = BTreeMap<(Rc<str>, usize, Rc<str>), Vec<Segment>>;
 
 impl Document {
-    fn serialize(&self) -> RemGroupCard {
+    fn card_map(&self) -> RemGroupCard {
         let content_map = self.content_map();
         let mut card_map = BTreeMap::new();
         for (id, contents) in content_map.iter() {
@@ -107,7 +128,7 @@ impl Rem {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Archive)]
 pub enum Segment {
     Visible(Rc<str>),
     Hidden(Rc<str>),
