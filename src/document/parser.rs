@@ -1,13 +1,13 @@
-use std::{rc::Rc};
+use std::rc::Rc;
 
-use super::SerializeError;
+use super::serialize::SerializeError;
 use from_pest::FromPest;
 use pest::{Parser, Span};
 use pest_ast::FromPest;
 use pest_derive::Parser;
 
 #[derive(Parser)]
-#[grammar = "serialize/document.pest"]
+#[grammar = "document/parser.pest"]
 struct DocumentParser;
 
 pub fn parse(input: &str) -> Result<Document, SerializeError<Rule>> {
