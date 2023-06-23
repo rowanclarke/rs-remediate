@@ -85,6 +85,7 @@ impl Rem {
 }
 
 #[derive(Debug, Serialize, Deserialize, Archive)]
+#[archive(check_bytes)]
 pub enum Segment {
     Visible(Rc<str>),
     Hidden(Rc<str>),

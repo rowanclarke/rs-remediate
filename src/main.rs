@@ -1,7 +1,8 @@
 #![feature(extend_one)]
 mod document;
 
-use document::serialize::serialize;
+
+use document::serialize;
 use std::path::Path;
 
 use clap::{Parser, Subcommand};
@@ -32,6 +33,6 @@ fn main() -> Result<(), String> {
         Command::Serialize(SerializeAction { path }) => {
             serialize(Path::new(&path)).map_err(|e| format!("{}", e))
         }
-        Command::Learn => Ok(()),
+        _ => Ok(()),
     }
 }
