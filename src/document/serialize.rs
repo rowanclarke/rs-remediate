@@ -2,7 +2,10 @@ mod error;
 
 use crate::REMEDY_DIR;
 
-use super::parser::{parse, Document, Rule};
+use super::{
+    parser::{parse, Document, Rule},
+    PATH,
+};
 pub use error::SerializeError;
 use rkyv::{
     ser::{
@@ -25,7 +28,7 @@ type DocumentSerializer =
 pub fn serialize(path: &Path) -> Result<(), SerializeError<Rule>> {
     let document = document_in(path)?;
     let mut serializer = DocumentSerializer::default();
-    serializer.serialize_value(&document.card_map()).unwrap();
+    serializer.serialize_value(&document.deck()).unwrap();
 
     let bytes = serializer.into_serializer().into_inner();
     file_out(path)?
@@ -39,7 +42,9 @@ fn document_in(path: &Path) -> Result<Document, SerializeError<Rule>> {
 }
 
 fn file_out(path: &Path) -> Result<File, SerializeError<Rule>> {
-    let dir_out = &env::var(REMEDY_DIR).map_err(|_| SerializeError::EnvironmentError)?;
-    let path_out = Path::new(&dir_out).join(path.file_stem().unwrap_or(OsStr::new("")));
+    let rem_dir = &env::var(REMEDY_DIR).map_err(|_| SerializeError::EnvironmentError)?;
+    let path_out = Path::new(&rem_dir)
+        .join(PATH)
+        .join(path.file_stem().unwrap_or(OsStr::new("")));
     File::create(path_out).map_err(|e| SerializeError::FileError(e))
 }

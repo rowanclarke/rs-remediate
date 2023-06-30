@@ -1,80 +1,86 @@
 use super::parser::*;
-use super::RemGroupCard;
+use super::CardId;
+use super::Deck;
 use rkyv::{Archive, Deserialize, Serialize};
 use std::{collections::BTreeMap, rc::Rc};
 
-type RemContent = BTreeMap<Rc<str>, Vec<Content>>;
+type Rems = BTreeMap<Rc<str>, Vec<Content>>;
 
 impl Document {
-    pub fn card_map(&self) -> RemGroupCard {
-        let content_map = self.content_map();
-        let mut card_map = BTreeMap::new();
-        for (id, contents) in content_map.iter() {
+    pub fn deck(&self) -> Deck {
+        let rems = self.rems();
+        let mut deck = BTreeMap::new();
+        for (id, contents) in rems.iter() {
             for content in contents {
                 if let Ok((location, group, _)) = content.closure() {
-                    card_map.insert((id.clone(), location, group), vec![]);
+                    deck.insert(
+                        CardId {
+                            id: id.clone(),
+                            location,
+                            group,
+                        },
+                        vec![],
+                    );
                 }
             }
         }
-        for ((id, location, group), segments) in card_map.iter_mut() {
-            for content in content_map.get(id).unwrap() {
+        for (id, segments) in deck.iter_mut() {
+            for content in rems.get(&id.id).unwrap() {
                 segments.push(match content.closure() {
-                    Ok((l, g, text)) if &l == location && &g == group => Segment::Hidden(text),
+                    Ok((l, g, text)) if (&l, &g) == (&id.location, &id.group) => {
+                        Segment::Hidden(text)
+                    }
                     Ok((_, _, text)) | Err(text) => Segment::Visible(text),
                 })
             }
         }
-        card_map
+        deck
     }
 
-    fn content_map(&self) -> RemContent {
-        let mut content_map = RemContent::new();
-        for rem in self.rems() {
-            rem.insert_into(&mut content_map, &mut vec![]);
+    fn rems(&self) -> Rems {
+        let mut rems = Rems::new();
+        for rem in self.rems_iter() {
+            rem.insert_into(&mut rems, &mut vec![]);
         }
-        content_map
+        rems
     }
 }
 
 impl Rem {
-    fn insert_into(
-        &self,
-        map: &mut BTreeMap<Rc<str>, Vec<Content>>,
-        parents: &mut Vec<Rc<str>>,
-    ) -> Vec<(Rc<str>, usize)> {
+    fn insert_into(&self, rems: &mut Rems, parents: &mut Vec<Rc<str>>) -> Vec<(Rc<str>, usize)> {
         let mut subtree = vec![];
         parents.push(self.id());
 
-        for child in self.children() {
+        for child in self.children_iter() {
             subtree.extend(
                 child
-                    .insert_into(map, parents)
+                    .insert_into(rems, parents)
                     .into_iter()
                     .map(|(id, n)| (id, n + 1)),
             );
         }
         subtree.push((self.id(), 0));
 
-        for content in self.content() {
+        for content in self.content_iter() {
             match content.closure() {
                 Ok((location, group, text)) if location > 0 => {
                     let parent = parents[parents.len() - location - 1].clone();
-                    map.extend_at(parent, Content::to_closure(0, group.clone(), text.clone()));
+                    rems.extend_at(parent, Content::to_closure(0, group.clone(), text.clone()));
                 }
                 _ => (),
             }
         }
 
         for (id, offset) in subtree.iter() {
-            for content in self.content() {
+            for content in self.content_iter() {
                 match content.closure() {
                     Ok((location, group, text)) => {
-                        map.extend_at(
+                        rems.extend_at(
                             id.clone(),
                             Content::to_closure(location + offset, group, text),
                         );
                     }
-                    Err(text) => map.extend_at(id.clone(), Content::to_text(text)),
+                    Err(text) => rems.extend_at(id.clone(), Content::to_text(text)),
                 }
             }
         }

@@ -1,11 +1,14 @@
 #![feature(extend_one)]
 mod document;
-
+mod schedule;
+mod session;
 
 use document::serialize;
-use std::path::Path;
+use schedule::sm2::Data;
 
 use clap::{Parser, Subcommand};
+use session::Session;
+use std::path::Path;
 
 const REMEDY_DIR: &str = "REMEDY_DIR";
 
@@ -33,6 +36,11 @@ fn main() -> Result<(), String> {
         Command::Serialize(SerializeAction { path }) => {
             serialize(Path::new(&path)).map_err(|e| format!("{}", e))
         }
-        _ => Ok(()),
+        _ => {
+            let mut session = Session::<Data>::new();
+            loop {
+                session.learn();
+            }
+        }
     }
 }

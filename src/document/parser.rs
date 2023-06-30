@@ -20,7 +20,7 @@ pub fn parse(input: &str) -> Result<Document, SerializeError<Rule>> {
 }
 
 impl Document {
-    pub fn rems(&self) -> impl Iterator<Item = &Rem> + '_ {
+    pub fn rems_iter(&self) -> impl Iterator<Item = &Rem> + '_ {
         self.rems.iter()
     }
 }
@@ -30,11 +30,11 @@ impl Rem {
         self.id.0.clone()
     }
 
-    pub fn content(&self) -> impl Iterator<Item = &Content> + '_ {
+    pub fn content_iter(&self) -> impl Iterator<Item = &Content> + '_ {
         self.content.iter()
     }
 
-    pub fn children(&self) -> impl Iterator<Item = &Rem> + '_ {
+    pub fn children_iter(&self) -> impl Iterator<Item = &Rem> + '_ {
         self.children.iter()
     }
 }
