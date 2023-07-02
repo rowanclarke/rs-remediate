@@ -1,8 +1,7 @@
 use std::rc::Rc;
 
-use super::serialize::SerializeError;
 use from_pest::FromPest;
-use pest::{Parser, Span};
+use pest::{error::Error, Parser, Span};
 use pest_ast::FromPest;
 use pest_derive::Parser;
 
@@ -10,13 +9,9 @@ use pest_derive::Parser;
 #[grammar = "document/parser.pest"]
 struct DocumentParser;
 
-pub fn parse(input: &str) -> Result<Document, SerializeError<Rule>> {
-    DocumentParser::parse(Rule::document, input)
-        .map_err(|e| SerializeError::<Rule>::ParseError(e))
-        .and_then(|mut pairs| {
-            Document::from_pest(&mut pairs)
-                .map_err(|_c| SerializeError::<Rule>::UnmatchingGrammarError)
-        })
+pub fn parse(input: &str) -> Result<Document, Error<Rule>> {
+    let mut pairs = DocumentParser::parse(Rule::document, input)?;
+    Ok(Document::from_pest(&mut pairs).unwrap())
 }
 
 impl Document {

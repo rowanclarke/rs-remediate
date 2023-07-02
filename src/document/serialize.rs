@@ -1,12 +1,9 @@
-mod error;
-
-use crate::REMEDY_DIR;
-
 use super::{
     parser::{parse, Document, Rule},
     PATH,
 };
-pub use error::SerializeError;
+use crate::file;
+use pest::error::Error;
 use rkyv::{
     ser::{
         serializers::{AlignedSerializer, AllocScratch, CompositeSerializer, SharedSerializeMap},
@@ -15,9 +12,7 @@ use rkyv::{
     util::AlignedVec,
 };
 use std::{
-    env,
-    ffi::OsStr,
-    fs::{read_to_string, File},
+    fs::{read_to_string},
     io::Write,
     path::Path,
 };
@@ -25,26 +20,19 @@ use std::{
 type DocumentSerializer =
     CompositeSerializer<AlignedSerializer<AlignedVec>, AllocScratch, SharedSerializeMap>;
 
-pub fn serialize(path: &Path) -> Result<(), SerializeError<Rule>> {
+pub fn serialize(path: &Path) -> Result<(), Error<Rule>> {
     let document = document_in(path)?;
     let mut serializer = DocumentSerializer::default();
     serializer.serialize_value(&document.deck()).unwrap();
 
     let bytes = serializer.into_serializer().into_inner();
-    file_out(path)?
+    file::create(&[PATH, file::stem(path)])
         .write_all(&bytes[..])
-        .map_err(|_| SerializeError::SerializeError)
+        .unwrap();
+    Ok(())
 }
 
-fn document_in(path: &Path) -> Result<Document, SerializeError<Rule>> {
-    let str_in = read_to_string(path).map_err(|e| SerializeError::FileError(e))?;
+fn document_in(path: &Path) -> Result<Document, Error<Rule>> {
+    let str_in = read_to_string(path).unwrap();
     parse(str_in.as_str())
-}
-
-fn file_out(path: &Path) -> Result<File, SerializeError<Rule>> {
-    let rem_dir = &env::var(REMEDY_DIR).map_err(|_| SerializeError::EnvironmentError)?;
-    let path_out = Path::new(&rem_dir)
-        .join(PATH)
-        .join(path.file_stem().unwrap_or(OsStr::new("")));
-    File::create(path_out).map_err(|e| SerializeError::FileError(e))
 }

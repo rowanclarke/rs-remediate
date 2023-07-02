@@ -1,14 +1,13 @@
-use super::{Deck, PATH};
-use crate::REMEDY_DIR;
-use rkyv::{check_archived_root, de::deserializers::SharedDeserializeMap, Deserialize, Infallible};
-use std::{
-    env,
-    fs::{read_dir, File},
-    io,
-    io::prelude::Read,
-    path::Path,
+use crate::file::{files, open, read};
+
+use super::{CardId, Deck, Segment, PATH};
+use rkyv::{
+    check_archived_root, de::deserializers::SharedDeserializeMap, Archived,
+    Deserialize,
 };
 
+
+/*
 fn files() -> impl Iterator<Item = Vec<u8>> {
     let rem_dir = &env::var(REMEDY_DIR).unwrap();
     let dir = Path::new(&rem_dir).join(PATH);
@@ -23,6 +22,17 @@ fn files() -> impl Iterator<Item = Vec<u8>> {
         })
 }
 
+
+
+pub fn all() -> impl Iterator<Item = Deck> {
+    files().map(|file| deserialize(&file[..]))
+}
+*/
+
+fn archived(bytes: &[u8]) -> &Archived<Deck> {
+    check_archived_root::<Deck>(bytes).unwrap()
+}
+
 fn deserialize(bytes: &[u8]) -> Deck {
     check_archived_root::<Deck>(bytes)
         .unwrap()
@@ -30,6 +40,14 @@ fn deserialize(bytes: &[u8]) -> Deck {
         .unwrap()
 }
 
-pub fn all() -> impl Iterator<Item = Deck> {
-    files().map(|file| deserialize(&file[..]))
+pub fn get(path: &String, id: Archived<CardId>) -> Vec<Segment> {
+    archived(read(open(&[PATH, path.as_str()])).as_slice())
+        .get(&id)
+        .unwrap()
+        .deserialize(&mut SharedDeserializeMap::new())
+        .unwrap()
+}
+
+pub fn all() -> impl Iterator<Item = (String, Deck)> {
+    files(&[PATH]).map(|(path, file)| (path.to_str().unwrap().to_owned(), deserialize(&read(file))))
 }

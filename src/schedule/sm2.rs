@@ -1,11 +1,13 @@
 use std::{cmp::Ordering, io::stdin};
 
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use rkyv::{Archive, Deserialize, Serialize};
 use std::convert::TryFrom;
 
 use super::{Query, Review};
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
+#[archive(check_bytes)]
 pub struct Data {
     repeat: usize,
     difficulty: f32,

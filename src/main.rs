@@ -1,7 +1,9 @@
-#![feature(extend_one)]
+#![feature(extend_one, binary_heap_as_slice)]
 mod document;
+mod file;
 mod schedule;
 mod session;
+mod with;
 
 use document::serialize;
 use schedule::sm2::Data;
@@ -9,8 +11,6 @@ use schedule::sm2::Data;
 use clap::{Parser, Subcommand};
 use session::Session;
 use std::path::Path;
-
-const REMEDY_DIR: &str = "REMEDY_DIR";
 
 #[derive(Parser)]
 struct Args {

@@ -14,3 +14,4 @@ serde = "1.0.164"
 rkyv = { version = "0.7.42", features = ["validation"] }
 clap = { version = "4.3.3", features = ["derive"] }
 num_enum = "0.6.1"
+pathdiff = "0.2.1"

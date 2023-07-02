@@ -1,45 +1,67 @@
 mod entry;
 
-use std::{
-    cmp::{Ordering, Reverse},
-    collections::BinaryHeap,
-    fmt::Debug,
-};
-
 use crate::{
-    document::{self, all, CardId, Segment},
-    schedule::{self, Query, Review},
+    document::{
+        Segment,
+    },
+    file::{create, open, read},
+    schedule::{Review},
+    with::AsBoxedSlice,
 };
 use entry::Entry;
+use rkyv::{
+    archived_root,
+    de::deserializers::SharedDeserializeMap, ser::serializers::AllocSerializer, ser::Serializer, Archive, Archived, Deserialize,
+    Serialize,
+};
+use std::{
+    collections::BinaryHeap,
+    fmt::Debug,
+    io::Write,
+};
 
 const PATH: &str = "session";
 
-#[derive(Debug)]
-pub struct Session<D>(SessionHeap<D>);
-type SessionHeap<D> = BinaryHeap<Reverse<Entry<D>>>;
+#[derive(Debug, Archive, Deserialize, Serialize)]
+#[archive(check_bytes)]
+pub struct Session<Data> {
+    #[with(AsBoxedSlice<Entry<Data>>)]
+    queue: SessionQueue<Data>,
+}
 
-impl<D: Review + Debug> Session<D> {
+type SessionQueue<D> = BinaryHeap<Entry<D>>;
+
+impl<D: Review + Archive + Serialize<AllocSerializer<1024>>> Session<D>
+where
+    Archived<D>: Deserialize<D, SharedDeserializeMap>,
+{
     pub fn new() -> Self {
-        let mut session = SessionHeap::<D>::new();
-        for document in all() {
-            for id in document.into_keys() {
-                session.push(Reverse(Entry::new(id, D::default())));
-            }
-        }
-        Session(session)
+        let queue = BinaryHeap::<Entry<D>>::new();
+        Self { queue }
+    }
+
+    pub fn save(&self) {
+        let mut serializer = AllocSerializer::default();
+        serializer.serialize_value(self).unwrap();
+        let bytes = serializer.into_serializer().into_inner();
+        create(&[PATH]).write_all(&bytes[..]).unwrap();
+    }
+
+    pub fn load() -> Self {
+        unsafe { archived_root::<Self>(read(open(&[PATH])).as_slice()) }
+            .deserialize(&mut SharedDeserializeMap::new())
+            .unwrap()
     }
 
     pub fn learn(&mut self) {
-        let Session(session) = self;
-        if let Some(card) = session.pop() {
-            let (id, mut data) = card.0.unwrap();
-            Self::with_value(&id, |vec| {
-                Self::print_hide(vec);
-                Self::print_show(vec);
-                data.review(<D as Review>::Score::query());
-            });
-            session.push(Reverse(Entry::new(id, data)));
-        }
+        // if let Some(card) = self.queue.pop() {
+        //     let (path, id, mut data) = card.0.unwrap();
+        //     let vec = get(&path);
+        //     Self::print_hide(&vec);
+        //     Self::print_show(&vec);
+        //     data.review(<D as Review>::Score::query());
+        //     self.queue.push(Entry::new(path, id, data));
+        // }
     }
 
     fn print_hide(vec: &Vec<Segment>) {
@@ -60,13 +82,5 @@ impl<D: Review + Debug> Session<D> {
             }
         }
         println!();
-    }
-
-    fn with_value(id: &CardId, mut f: impl FnMut(&Vec<Segment>)) {
-        for document in all() {
-            if let Some(value) = document.get(id) {
-                f(value)
-            }
-        }
     }
 }
