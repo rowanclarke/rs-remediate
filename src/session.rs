@@ -52,34 +52,5 @@ where
             .unwrap()
     }
 
-    pub fn learn(&mut self) {
-        // if let Some(card) = self.queue.pop() {
-        //     let (path, id, mut data) = card.0.unwrap();
-        //     let vec = get(&path);
-        //     Self::print_hide(&vec);
-        //     Self::print_show(&vec);
-        //     data.review(<D as Review>::Score::query());
-        //     self.queue.push(Entry::new(path, id, data));
-        // }
-    }
-
-    fn print_hide(vec: &Vec<Segment>) {
-        for segment in vec {
-            match &segment {
-                Segment::Visible(text) => print!("{}", text),
-                Segment::Hidden(_) => print!("[...]"),
-            }
-        }
-        println!();
-    }
-
-    fn print_show(vec: &Vec<Segment>) {
-        for segment in vec {
-            match &segment {
-                Segment::Visible(text) => print!("{}", text),
-                Segment::Hidden(text) => print!("[{}]", text),
-            }
-        }
-        println!();
-    }
+    pub fn learn(&mut self) {}
 }

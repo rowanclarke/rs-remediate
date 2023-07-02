@@ -2,6 +2,8 @@ use super::parser::*;
 use super::CardId;
 use super::Deck;
 use rkyv::{Archive, Deserialize, Serialize};
+use std::fmt;
+use std::fmt::Display;
 use std::{collections::BTreeMap, rc::Rc};
 
 type Rems = BTreeMap<Rc<str>, Vec<Content>>;
@@ -95,6 +97,29 @@ impl Rem {
 pub enum Segment {
     Visible(Rc<str>),
     Hidden(Rc<str>),
+}
+
+pub enum DisplayCardStatus {
+    Show,
+    Hide,
+}
+
+pub struct DisplayCard {
+    pub segments: Vec<Segment>,
+    pub status: DisplayCardStatus,
+}
+
+impl Display for DisplayCard {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for segment in self.segments.iter() {
+            match (segment, &self.status) {
+                (Segment::Visible(text), _) => write!(f, "{}", text)?,
+                (Segment::Hidden(_), DisplayCardStatus::Hide) => write!(f, "[...]")?,
+                (Segment::Hidden(text), DisplayCardStatus::Show) => write!(f, "[{}]", text)?,
+            }
+        }
+        Ok(())
+    }
 }
 
 trait ExtendMap<K, T> {
