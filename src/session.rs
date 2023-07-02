@@ -33,7 +33,7 @@ where
         let mut queue = BinaryHeap::<Entry<D>>::new();
         for (path, deck) in all() {
             for (id, _) in deck {
-                queue.push(Entry::<D>::new(path.to_string(), id, D::default()))
+                queue.push(Entry::<D>::new(path.clone(), id, D::default()))
             }
         }
         Self { queue }
