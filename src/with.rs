@@ -29,7 +29,7 @@ impl<T: Archive + Serialize<S>, S: ScratchSpace + Serializer + ?Sized>
         field: &BinaryHeap<T>,
         serializer: &mut S,
     ) -> Result<Self::Resolver, <S as Fallible>::Error> {
-        unsafe { Self::Archived::serialize_copy_from_slice(field.as_slice(), serializer) }
+        Self::Archived::serialize_from_ref(field.as_slice(), serializer)
     }
 }
 

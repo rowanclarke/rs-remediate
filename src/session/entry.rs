@@ -1,29 +1,21 @@
 use crate::{document::CardId, schedule::Review};
 use rkyv::{Archive, Deserialize, Serialize};
-use std::{cmp::Ordering};
+use std::cmp::Ordering;
 
 #[derive(Debug, Archive, Serialize, Deserialize)]
 #[archive(check_bytes)]
 pub struct Entry<D> {
     path: String,
     id: CardId,
-    data: Box<D>,
+    data: D,
 }
 
 impl<D: Review> Entry<D> {
-    pub fn new(path: String, id: CardId, data: Box<D>) -> Self {
+    pub fn new(path: String, id: CardId, data: D) -> Self {
         Self { path, id, data }
     }
 
-    pub fn from(path: String, id: CardId, data: D) -> Self {
-        Self {
-            path,
-            id,
-            data: Box::new(data),
-        }
-    }
-
-    pub fn unwrap(self) -> (CardId, Box<D>) {
+    pub fn unwrap(self) -> (CardId, D) {
         (self.id, self.data)
     }
 

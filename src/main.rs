@@ -29,18 +29,11 @@ struct SerializeAction {
     path: String,
 }
 
-fn main() -> Result<(), String> {
+fn main() {
     let args = Args::parse();
 
     match args.command {
-        Command::Serialize(SerializeAction { path }) => {
-            serialize(Path::new(&path)).map_err(|e| format!("{}", e))
-        }
-        _ => {
-            let mut session = Session::<Data>::new();
-            loop {
-                session.learn();
-            }
-        }
+        Command::Serialize(SerializeAction { path }) => serialize(Path::new(&path)).unwrap(),
+        _ => Session::<Data>::new().save(),
     }
 }

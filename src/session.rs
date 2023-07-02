@@ -1,24 +1,17 @@
 mod entry;
 
 use crate::{
-    document::{
-        Segment,
-    },
+    document::{deserialize::all, Segment},
     file::{create, open, read},
-    schedule::{Review},
+    schedule::Review,
     with::AsBoxedSlice,
 };
 use entry::Entry;
 use rkyv::{
-    archived_root,
-    de::deserializers::SharedDeserializeMap, ser::serializers::AllocSerializer, ser::Serializer, Archive, Archived, Deserialize,
-    Serialize,
+    archived_root, de::deserializers::SharedDeserializeMap, ser::serializers::AllocSerializer,
+    ser::Serializer, Archive, Archived, Deserialize, Serialize,
 };
-use std::{
-    collections::BinaryHeap,
-    fmt::Debug,
-    io::Write,
-};
+use std::{collections::BinaryHeap, fmt::Debug, io::Write};
 
 const PATH: &str = "session";
 
@@ -30,18 +23,24 @@ pub struct Session<Data> {
 }
 
 type SessionQueue<D> = BinaryHeap<Entry<D>>;
+type SessionSerializer = AllocSerializer<1024>;
 
-impl<D: Review + Archive + Serialize<AllocSerializer<1024>>> Session<D>
+impl<D: Review + Archive + Serialize<SessionSerializer>> Session<D>
 where
     Archived<D>: Deserialize<D, SharedDeserializeMap>,
 {
     pub fn new() -> Self {
-        let queue = BinaryHeap::<Entry<D>>::new();
+        let mut queue = BinaryHeap::<Entry<D>>::new();
+        for (path, deck) in all() {
+            for (id, _) in deck {
+                queue.push(Entry::<D>::new(path.to_string(), id, D::default()))
+            }
+        }
         Self { queue }
     }
 
     pub fn save(&self) {
-        let mut serializer = AllocSerializer::default();
+        let mut serializer = SessionSerializer::default();
         serializer.serialize_value(self).unwrap();
         let bytes = serializer.into_serializer().into_inner();
         create(&[PATH]).write_all(&bytes[..]).unwrap();
