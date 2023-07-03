@@ -21,7 +21,7 @@ struct Args {
 #[derive(Subcommand)]
 enum Command {
     Serialize(SerializeAction),
-    Learn,
+    Session(SessionAction),
 }
 
 #[derive(clap::Args)]
@@ -29,11 +29,28 @@ struct SerializeAction {
     path: String,
 }
 
+#[derive(clap::Args)]
+struct SessionAction {
+    #[command(subcommand)]
+    command: SessionCommand,
+}
+
+#[derive(Subcommand)]
+enum SessionCommand {
+    Initialize,
+    Learn,
+}
+
 fn main() {
     let args = Args::parse();
 
     match args.command {
         Command::Serialize(SerializeAction { path }) => serialize(Path::new(&path)).unwrap(),
-        _ => Session::<Data>::new().save(),
+        Command::Session(SessionAction {
+            command: SessionCommand::Initialize,
+        }) => Session::<Data>::new().save(),
+        Command::Session(SessionAction {
+            command: SessionCommand::Learn,
+        }) => Session::<Data>::load().learn(),
     }
 }
