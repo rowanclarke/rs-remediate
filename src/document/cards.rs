@@ -105,8 +105,25 @@ pub enum DisplayCardStatus {
 }
 
 pub struct DisplayCard {
-    pub segments: Vec<Segment>,
-    pub status: DisplayCardStatus,
+    segments: Vec<Segment>,
+    status: DisplayCardStatus,
+}
+
+impl DisplayCard {
+    pub fn new(segments: Vec<Segment>) -> Self {
+        Self {
+            segments,
+            status: DisplayCardStatus::Hide,
+        }
+    }
+
+    pub fn show(&mut self) {
+        self.status = DisplayCardStatus::Show;
+    }
+
+    pub fn hide(&mut self) {
+        self.status = DisplayCardStatus::Hide;
+    }
 }
 
 impl Display for DisplayCard {

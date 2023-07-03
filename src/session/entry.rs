@@ -15,16 +15,8 @@ impl<D: Review> Entry<D> {
         Self { path, id, data }
     }
 
-    pub fn unwrap(self) -> (CardId, D) {
-        (self.id, self.data)
-    }
-
-    pub fn review(&mut self, score: <D as Review>::Score) {
-        self.data.review(score)
-    }
-
-    pub fn id(&self) -> &CardId {
-        &self.id
+    pub fn into_components(self) -> (Rc<str>, CardId, D) {
+        (self.path, self.id, self.data)
     }
 }
 

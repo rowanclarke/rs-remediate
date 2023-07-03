@@ -3,8 +3,11 @@ pub mod deserialize;
 mod parser;
 mod serialize;
 
-pub use cards::Segment;
-use rkyv::{Archive, Deserialize, Serialize};
+pub use cards::{DisplayCard, Segment};
+use rkyv::{
+    archived_root, ser::serializers::AllocSerializer, ser::Serializer, AlignedVec, Archive,
+    Archived, Deserialize, Serialize,
+};
 pub use serialize::serialize;
 use std::{collections::BTreeMap, rc::Rc};
 
@@ -20,3 +23,13 @@ pub struct CardId {
 }
 
 pub type Deck = BTreeMap<CardId, Vec<Segment>>;
+
+type CardIdSerializer = AllocSerializer<1024>;
+
+impl CardId {
+    pub fn archived(&self) -> AlignedVec {
+        let mut serializer = CardIdSerializer::default();
+        serializer.serialize_value(self).unwrap();
+        serializer.into_serializer().into_inner()
+    }
+}

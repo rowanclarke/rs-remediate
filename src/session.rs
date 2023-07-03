@@ -1,9 +1,12 @@
 mod entry;
 
 use crate::{
-    document::{deserialize::all, Segment},
+    document::{
+        deserialize::{all, get},
+        CardId, DisplayCard,
+    },
     file::{create, open, read},
-    schedule::Review,
+    schedule::{Query, Review},
     with::AsBoxedSlice,
 };
 use entry::Entry;
@@ -52,5 +55,18 @@ where
             .unwrap()
     }
 
-    pub fn learn(&mut self) {}
+    pub fn learn(&mut self) {
+        loop {
+            if let Some((path, id, mut data)) = self.queue.pop().map(Entry::into_components) {
+                let mut card = DisplayCard::new(get(path.clone(), unsafe {
+                    archived_root::<CardId>(id.archived().as_slice())
+                }));
+                println!("{}", card);
+                card.show();
+                println!("{}", card);
+                data.review(<D as Review>::Score::query());
+                self.queue.push(Entry::<D>::new(path, id, data));
+            }
+        }
+    }
 }
