@@ -1,12 +1,10 @@
-use std::{collections::BinaryHeap, marker::PhantomData};
-
+use super::AsBoxedSlice;
 use rkyv::{
     ser::{ScratchSpace, Serializer},
     with::{ArchiveWith, DeserializeWith, SerializeWith},
     Archive, Archived, Deserialize, DeserializeUnsized, Fallible, Resolver, Serialize,
 };
-
-pub struct AsBoxedSlice<T>(PhantomData<T>);
+use std::collections::BinaryHeap;
 
 impl<T: Archive> ArchiveWith<BinaryHeap<T>> for AsBoxedSlice<T> {
     type Archived = Archived<Box<[T]>>;

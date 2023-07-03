@@ -1,9 +1,9 @@
 #![feature(extend_one, binary_heap_as_slice)]
+mod archive;
 mod document;
 mod file;
 mod schedule;
 mod session;
-mod with;
 
 use document::serialize;
 use schedule::sm2::Data;
