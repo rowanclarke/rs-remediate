@@ -1,4 +1,7 @@
-use crate::{document::CardId, schedule::Review};
+use crate::{
+    document::{parser::Group, CardId},
+    schedule::Review,
+};
 use rkyv::{Archive, Deserialize, Serialize};
 use std::{cmp::Ordering, rc::Rc};
 

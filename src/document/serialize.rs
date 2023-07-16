@@ -11,11 +11,7 @@ use rkyv::{
     },
     util::AlignedVec,
 };
-use std::{
-    fs::{read_to_string},
-    io::Write,
-    path::Path,
-};
+use std::{fs::read_to_string, io::Write, path::Path};
 
 type DocumentSerializer =
     CompositeSerializer<AlignedSerializer<AlignedVec>, AllocScratch, SharedSerializeMap>;

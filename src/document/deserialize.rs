@@ -2,28 +2,27 @@ use std::rc::Rc;
 
 use crate::file::{files, open, read};
 
-use super::{CardId, Deck, Segment, PATH};
-use rkyv::{check_archived_root, de::deserializers::SharedDeserializeMap, Archived, Deserialize};
+use super::{Card, Deck, PATH};
+use rkyv::{archived_root, de::deserializers::SharedDeserializeMap, Archived, Deserialize};
 
 fn archived(bytes: &[u8]) -> &Archived<Deck> {
-    check_archived_root::<Deck>(bytes).unwrap()
+    unsafe { archived_root::<Deck>(bytes) }
 }
 
 fn deserialize(bytes: &[u8]) -> Deck {
-    check_archived_root::<Deck>(bytes)
-        .unwrap()
+    unsafe { archived_root::<Deck>(bytes) }
         .deserialize(&mut SharedDeserializeMap::new())
         .unwrap()
 }
 
-pub fn get(path: Rc<str>, id: &Archived<CardId>) -> Vec<Segment> {
+pub fn card(path: Rc<str>, id: Rc<str>) -> Card {
     archived(read(open(&[PATH, path.as_ref()])).as_slice())
-        .get(id)
+        .get(id.as_ref())
         .unwrap()
         .deserialize(&mut SharedDeserializeMap::new())
         .unwrap()
 }
 
-pub fn all() -> impl Iterator<Item = (Rc<str>, Deck)> {
+pub fn decks() -> impl Iterator<Item = (Rc<str>, Deck)> {
     files(&[PATH]).map(|(path, file)| (path.to_str().unwrap().into(), deserialize(&read(file))))
 }

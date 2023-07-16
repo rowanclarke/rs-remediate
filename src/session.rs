@@ -3,8 +3,10 @@ mod entry;
 use crate::{
     archive::{impls::reverse::Reverse, with::AsBoxedSlice},
     document::{
-        deserialize::{all, get},
-        CardId, DisplayCard,
+        deserialize::{card, decks},
+        groups,
+        parser::Group,
+        Card, DisplayCard,
     },
     file::{create, open, read},
     schedule::{Query, Review},
@@ -35,13 +37,15 @@ where
 {
     pub fn new() -> Self {
         let mut queue = BinaryHeap::<Reverse<Entry<D>>>::new();
-        for (path, deck) in all() {
-            for (id, _) in deck {
-                queue.push(Reverse::new(Entry::<D>::new(
-                    path.clone(),
-                    id,
-                    D::default(),
-                )))
+        for (path, deck) in decks() {
+            for (id, card) in deck {
+                for group in groups(&card) {
+                    queue.push(Reverse::new(Entry::<D>::new(
+                        path.clone(),
+                        (id.clone(), group),
+                        D::default(),
+                    )));
+                }
             }
         }
         Self { queue }
@@ -62,21 +66,19 @@ where
 
     pub fn learn(&mut self) {
         loop {
-            if let Some((path, id, mut data)) = self
+            if let Some((path, (id, group), mut data)) = self
                 .queue
                 .pop()
                 .map(Reverse::to_owned)
                 .map(Entry::into_components)
             {
-                let mut card = DisplayCard::new(get(path.clone(), unsafe {
-                    archived_root::<CardId>(id.archived().as_slice())
-                }));
+                let mut card = DisplayCard::new(card(path.clone(), id.clone()), group.clone());
                 println!("{}", card);
                 card.show();
                 println!("{}", card);
                 data.review(<D as Review>::Score::query());
                 self.queue
-                    .push(Reverse::new(Entry::<D>::new(path, id, data)));
+                    .push(Reverse::new(Entry::<D>::new(path, (id, group), data)));
             }
         }
     }

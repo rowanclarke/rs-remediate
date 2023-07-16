@@ -1,35 +1,79 @@
 mod cards;
 pub mod deserialize;
-mod parser;
+pub mod parser;
 mod serialize;
-
-pub use cards::{DisplayCard, Segment};
-use rkyv::{
-    archived_root, ser::serializers::AllocSerializer, ser::Serializer, AlignedVec, Archive,
-    Archived, Deserialize, Serialize,
-};
 pub use serialize::serialize;
-use std::{collections::BTreeMap, rc::Rc};
+use std::{
+    collections::{BTreeMap, HashSet},
+    fmt::{self, Display},
+    rc::Rc,
+};
+
+use self::parser::{Content, Group};
 
 const PATH: &str = "documents";
 
-#[derive(Clone, Ord, Eq, PartialEq, PartialOrd, Archive, Serialize, Debug, Deserialize)]
-#[archive(check_bytes)]
-#[archive_attr(derive(Ord, PartialEq, Eq, PartialOrd))]
-pub struct CardId {
-    id: Rc<str>,
-    location: usize,
-    group: Rc<str>,
+pub type Deck = BTreeMap<Rc<str>, Card>;
+pub type Card = Vec<(usize, Vec<Content>)>;
+pub type CardId = (Rc<str>, Group);
+
+pub fn groups(card: &Card) -> HashSet<Group> {
+    let mut set = HashSet::new();
+    for (_, rem) in card {
+        for group in rem.iter().filter_map(Content::group) {
+            set.insert(group);
+        }
+    }
+    set
 }
 
-pub type Deck = BTreeMap<CardId, Vec<Segment>>;
+pub enum DisplayCardStatus {
+    Show,
+    Hide,
+}
 
-type CardIdSerializer = AllocSerializer<1024>;
+pub struct DisplayCard {
+    card: Card,
+    group: Group,
+    status: DisplayCardStatus,
+}
 
-impl CardId {
-    pub fn archived(&self) -> AlignedVec {
-        let mut serializer = CardIdSerializer::default();
-        serializer.serialize_value(self).unwrap();
-        serializer.into_serializer().into_inner()
+impl DisplayCard {
+    pub fn new(card: Card, group: Group) -> Self {
+        Self {
+            card,
+            group,
+            status: DisplayCardStatus::Hide,
+        }
+    }
+
+    pub fn show(&mut self) {
+        self.status = DisplayCardStatus::Show;
+    }
+
+    pub fn hide(&mut self) {
+        self.status = DisplayCardStatus::Hide;
+    }
+}
+
+impl Display for DisplayCard {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut cards = self.card.iter().peekable();
+        while let Some((depth, rem)) = cards.next() {
+            write!(f, "{}", "  ".repeat(*depth))?;
+            for content in rem {
+                match content {
+                    Content::Closure(group, text) if group == &self.group => match &self.status {
+                        DisplayCardStatus::Show => write!(f, "[{}]", text)?,
+                        DisplayCardStatus::Hide => write!(f, "[...]")?,
+                    },
+                    Content::Text(text) | Content::Closure(_, text) => write!(f, "{}", text)?,
+                }
+            }
+            if cards.peek().is_some() {
+                writeln!(f)?;
+            }
+        }
+        Ok(())
     }
 }
