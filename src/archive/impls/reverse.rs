@@ -1,8 +1,4 @@
-use rkyv::{
-    ser::{ScratchSpace, Serializer},
-    with::{ArchiveWith, DeserializeWith, SerializeWith},
-    Archive, Archived, Deserialize, Fallible, Resolver, Serialize,
-};
+use rkyv::{Archive, Archived, Deserialize, Fallible, Serialize};
 use std::cmp::{self, Ordering};
 
 #[derive(Debug)]
@@ -13,11 +9,15 @@ impl<T> Reverse<T> {
         Self(cmp::Reverse(data))
     }
 
-    pub fn as_ref(&self) -> &T {
+    pub fn get_ref(&self) -> &T {
         &(self.0).0
     }
 
-    pub fn to_owned(self) -> T {
+    pub fn get_mut(&mut self) -> &T {
+        &mut (self.0).0
+    }
+
+    pub fn get(self) -> T {
         (self.0).0
     }
 }
@@ -47,13 +47,13 @@ impl<T: Archive> Archive for Reverse<T> {
     type Resolver = T::Resolver;
 
     unsafe fn resolve(&self, pos: usize, resolver: Self::Resolver, out: *mut Self::Archived) {
-        self.as_ref().resolve(pos, resolver, out)
+        self.get_ref().resolve(pos, resolver, out)
     }
 }
 
 impl<S: Fallible + ?Sized, T: Serialize<S>> Serialize<S> for Reverse<T> {
     fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, <S as Fallible>::Error> {
-        self.as_ref().serialize(serializer)
+        self.get_ref().serialize(serializer)
     }
 }
 
