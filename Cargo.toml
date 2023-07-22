@@ -1,5 +1,5 @@
 [package]
-name = "remedy"
+name = "remediate"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,6 +12,5 @@ pest-ast = "0.3.3"
 bincode = "1.3.3"
 serde = "1.0.164"
 rkyv = { version = "0.7.42", features = ["validation"] }
-clap = { version = "4.3.3", features = ["derive"] }
 num_enum = "0.6.1"
 pathdiff = "0.2.1"
