@@ -2,14 +2,10 @@ use ast::DocumentParser;
 pub use ast::Rule;
 use from_pest::FromPest;
 use pest::{error::Error, Parser};
-use pest_ast::FromPest;
 use rkyv::{Archive, Deserialize, Serialize};
-use std::rc::Rc;
+use std::{path::Path, rc::Rc, str};
 
-pub fn parse(input: &str) -> Result<Document, Error<Rule>> {
-    let mut pairs = DocumentParser::parse(Rule::document, input)?;
-    Ok(ast::Document::from_pest(&mut pairs).unwrap().into())
-}
+use crate::workspace::Workspace;
 
 #[derive(Debug)]
 pub struct Document {
@@ -24,6 +20,7 @@ pub struct Rem {
 }
 
 #[derive(Debug, Clone, Archive, Serialize, Deserialize)]
+#[archive_attr(derive(Debug))]
 pub enum Content {
     Text(Rc<str>),
     Closure(Group, Rc<str>),
@@ -32,6 +29,16 @@ pub enum Content {
 pub type Group = (Rc<str>, Rc<str>);
 
 impl Document {
+    pub fn parse<W: Workspace>(
+        workspace: &W,
+        location: &[W::Component],
+    ) -> Result<Self, Error<Rule>> {
+        let input = workspace.read(location);
+        let mut pairs =
+            DocumentParser::parse(Rule::document, str::from_utf8(input.as_ref()).unwrap())?;
+        Ok(ast::Document::from_pest(&mut pairs).unwrap().into())
+    }
+
     pub fn rems(&self) -> Rc<[Rem]> {
         self.rems.clone()
     }
@@ -61,14 +68,13 @@ impl Content {
 }
 
 mod ast {
-    use from_pest::FromPest;
-    use pest::{Parser, Span};
+    use pest::Span;
     use pest_ast::FromPest;
     use pest_derive::Parser;
     use std::rc::Rc;
 
     #[derive(Parser)]
-    #[grammar = "document/parser.pest"]
+    #[grammar = "deck/document.pest"]
     pub struct DocumentParser;
 
     #[derive(Debug, FromPest)]

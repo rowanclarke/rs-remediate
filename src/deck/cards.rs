@@ -1,21 +1,11 @@
 use super::{
-    parser::{Content, Document, Rem},
-    Deck,
+    document::{Content, Rem},
+    Cards,
 };
 use std::{collections::BTreeMap, rc::Rc};
 
-impl Document {
-    pub fn deck(&self) -> Deck {
-        let mut deck = Deck::new();
-        for rem in self.rems().iter() {
-            rem.insert_into(&mut deck, 0);
-        }
-        deck
-    }
-}
-
 impl Rem {
-    pub fn insert_into(&self, deck: &mut Deck, depth: usize) {
+    pub fn insert_into(&self, cards: &mut Cards, depth: usize) {
         let mut card_buffer: BTreeMap<Rc<str>, Vec<Content>> = BTreeMap::new();
         for content in self.content().iter() {
             match content {
@@ -29,10 +19,10 @@ impl Rem {
             }
         }
         for (id, vec) in card_buffer {
-            deck.extend_at(id, (depth, vec));
+            cards.extend_at(id, (depth, vec));
         }
         for child in self.children().iter() {
-            child.insert_into(deck, depth + 1);
+            child.insert_into(cards, depth + 1);
         }
     }
 
