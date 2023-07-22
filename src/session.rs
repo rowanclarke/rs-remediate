@@ -1,46 +1,47 @@
 mod entry;
 
 use crate::{
-    archive::{impls::reverse::Reverse, with::AsBoxedSlice},
-    document::{
-        deserialize::{card, decks},
-        groups,
-        parser::Group,
-        Card, DisplayCard,
-    },
-    file::{create, open, read},
-    schedule::{Query, Review},
+    archive::{impls::reverse::Reverse, with::AsBoxedSlice, Cast},
+    deck::Deck,
+    loc,
+    schedule::Review,
+    workspace::{AsComponents, Component, IntoComponents, Workspace},
+    DIR,
 };
-use entry::Entry;
+pub use entry::Entry;
 use rkyv::{
-    archived_root, de::deserializers::SharedDeserializeMap, ser::serializers::AllocSerializer,
-    ser::Serializer, with::With, Archive, Archived, Deserialize, Serialize,
+    de::deserializers::SharedDeserializeMap, ser::serializers::AllocSerializer, ser::Serializer,
+    Archive, Archived, Deserialize, Serialize,
 };
-use std::{collections::BinaryHeap, fmt::Debug, io::Write};
+use std::{collections::BinaryHeap, fmt::Debug};
 
 const PATH: &str = "session";
 
 #[derive(Debug, Archive, Deserialize, Serialize)]
 #[archive(check_bytes)]
-pub struct Session<Data> {
-    #[with(AsBoxedSlice<SessionQueueInner<Data>>)]
-    queue: SessionQueue<Data>,
+pub struct Session<L, D> {
+    #[with(AsBoxedSlice<SessionQueueInner<L, D>>)]
+    queue: SessionQueue<L, D>,
 }
 
-type SessionQueue<D> = BinaryHeap<SessionQueueInner<D>>;
-type SessionQueueInner<D> = Reverse<Entry<D>>;
+type SessionQueue<L, D> = BinaryHeap<SessionQueueInner<L, D>>;
+type SessionQueueInner<L, D> = Reverse<Entry<L, D>>;
 type SessionSerializer = AllocSerializer<1024>;
 
-impl<D: Review + Archive + Serialize<SessionSerializer>> Session<D>
+impl<
+        C: Component + Archive + Serialize<SessionSerializer>,
+        D: Review + Archive + Serialize<SessionSerializer>,
+    > Session<C, D>
 where
     Archived<D>: Deserialize<D, SharedDeserializeMap>,
+    Archived<C>: Deserialize<C, SharedDeserializeMap>,
 {
-    pub fn new() -> Self {
-        let mut queue = BinaryHeap::<Reverse<Entry<D>>>::new();
-        for (path, deck) in decks() {
-            for (id, card) in deck {
-                for group in groups(&card) {
-                    queue.push(Reverse::new(Entry::<D>::new(
+    pub fn new<W: Workspace<Component = C>>(workspace: &W) -> Self {
+        let mut queue = BinaryHeap::<Reverse<Entry<C, D>>>::new();
+        for (deck, path) in Deck::all(workspace) {
+            for (id, card) in deck.cards() {
+                for group in card.groups() {
+                    queue.push(Reverse::new(Entry::<C, D>::new(
                         path.clone(),
                         (id.clone(), group),
                         D::default(),
@@ -51,34 +52,32 @@ where
         Self { queue }
     }
 
-    pub fn save(&self) {
+    pub fn save<W: Workspace<Component = C>>(&self, workspace: &W) {
         let mut serializer = SessionSerializer::default();
         serializer.serialize_value(self).unwrap();
         let bytes = serializer.into_serializer().into_inner();
-        create(&[PATH]).write_all(&bytes[..]).unwrap();
+        workspace.write(
+            loc![DIR, PATH; C],
+            //&[&C::from(DIR) as &dyn IntoComponents<C>] as &[&dyn IntoComponents<C>],
+            &bytes[..],
+        );
     }
 
-    pub fn load() -> Self {
-        unsafe { archived_root::<Self>(read(open(&[PATH])).as_slice()) }
+    pub fn load<W: Workspace<Component = C>>(workspace: &W) -> Self {
+        (workspace.read(loc![DIR, PATH; C]).as_ref().cast() as &Archived<Self>)
             .deserialize(&mut SharedDeserializeMap::new())
             .unwrap()
     }
 
-    pub fn learn(&mut self) {
-        loop {
-            if let Some((path, (id, group), mut data)) = self
-                .queue
-                .pop()
-                .map(Reverse::to_owned)
-                .map(Entry::into_components)
-            {
-                let mut card = DisplayCard::new(card(path.clone(), id.clone()), group.clone());
-                println!("{}", card);
-                card.show();
-                println!("{}", card);
-                data.review(<D as Review>::Score::query());
-                self.queue
-                    .push(Reverse::new(Entry::<D>::new(path, (id, group), data)));
+    pub fn for_each<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut Entry<C, D>) -> bool,
+    {
+        while let Some(mut entry) = self.queue.pop().map(Reverse::get) {
+            let stop = f(&mut entry);
+            self.queue.push(Reverse::new(entry));
+            if stop {
+                break;
             }
         }
     }
