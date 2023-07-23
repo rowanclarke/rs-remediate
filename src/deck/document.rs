@@ -3,7 +3,7 @@ pub use ast::Rule;
 use from_pest::FromPest;
 use pest::{error::Error, Parser};
 use rkyv::{Archive, Deserialize, Serialize};
-use std::{path::Path, rc::Rc, str};
+use std::{rc::Rc, str};
 
 use crate::workspace::Workspace;
 

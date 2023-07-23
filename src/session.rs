@@ -19,13 +19,13 @@ const PATH: &str = "session";
 
 #[derive(Debug, Archive, Deserialize, Serialize)]
 #[archive(check_bytes)]
-pub struct Session<L, D> {
-    #[with(AsBoxedSlice<SessionQueueInner<L, D>>)]
-    queue: SessionQueue<L, D>,
+pub struct Session<C, D> {
+    #[with(AsBoxedSlice<SessionQueueInner<C, D>>)]
+    queue: SessionQueue<C, D>,
 }
 
-type SessionQueue<L, D> = BinaryHeap<SessionQueueInner<L, D>>;
-type SessionQueueInner<L, D> = Reverse<Entry<L, D>>;
+type SessionQueue<C, D> = BinaryHeap<SessionQueueInner<C, D>>;
+type SessionQueueInner<C, D> = Reverse<Entry<C, D>>;
 type SessionSerializer = AllocSerializer<1024>;
 
 impl<
@@ -33,8 +33,8 @@ impl<
         D: Review + Archive + Serialize<SessionSerializer>,
     > Session<C, D>
 where
-    Archived<D>: Deserialize<D, SharedDeserializeMap>,
     Archived<C>: Deserialize<C, SharedDeserializeMap>,
+    Archived<D>: Deserialize<D, SharedDeserializeMap>,
 {
     pub fn new<W: Workspace<Component = C>>(workspace: &W) -> Self {
         let mut queue = BinaryHeap::<Reverse<Entry<C, D>>>::new();
@@ -56,15 +56,11 @@ where
         let mut serializer = SessionSerializer::default();
         serializer.serialize_value(self).unwrap();
         let bytes = serializer.into_serializer().into_inner();
-        workspace.write(
-            loc![DIR, PATH; C],
-            //&[&C::from(DIR) as &dyn IntoComponents<C>] as &[&dyn IntoComponents<C>],
-            &bytes[..],
-        );
+        workspace.write(loc!([DIR, PATH] as C), &bytes[..]);
     }
 
     pub fn load<W: Workspace<Component = C>>(workspace: &W) -> Self {
-        (workspace.read(loc![DIR, PATH; C]).as_ref().cast() as &Archived<Self>)
+        (workspace.read(loc!([DIR, PATH] as C)).as_ref().cast() as &Archived<Self>)
             .deserialize(&mut SharedDeserializeMap::new())
             .unwrap()
     }

@@ -1,18 +1,14 @@
 mod cards;
 pub mod document;
 use crate::{
-    archive::{self, Cast},
+    archive::Cast,
     loc,
     workspace::{AsComponents, IntoComponents, Workspace},
     DIR,
 };
-use rkyv::{
-    archived_root, ser::serializers::AllocSerializer, ser::Serializer, Archive, Deserialize,
-    Serialize,
-};
+use rkyv::{ser::serializers::AllocSerializer, ser::Serializer, Archive, Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashSet},
-    net::TcpListener,
     rc::Rc,
 };
 
@@ -53,7 +49,7 @@ impl Deck {
             .map(move |location| {
                 (
                     Self::deserialize(
-                        workspace.read(loc![DIR, PATH, location.clone(); W::Component]),
+                        workspace.read(loc!([DIR, PATH, location.clone()] as W::Component)),
                     ),
                     location,
                 )
@@ -65,7 +61,7 @@ impl Deck {
         serializer.serialize_value(self).unwrap();
 
         let bytes = serializer.into_serializer().into_inner();
-        workspace.write(loc![DIR, PATH, location; W::Component], &bytes[..]);
+        workspace.write(loc!([DIR, PATH, location] as W::Component), &bytes[..]);
     }
 
     fn deserialize(bytes: Rc<[u8]>) -> Self {
@@ -96,7 +92,7 @@ impl ArchivedDeck {
     }
 
     pub fn load<W: Workspace>(workspace: &W, location: &[W::Component]) -> Rc<Self> {
-        dbg!(workspace.read(loc![DIR, PATH, location; W::Component])).cast()
+        dbg!(workspace.read(loc!([DIR, PATH, location] as W::Component))).cast()
     }
 }
 

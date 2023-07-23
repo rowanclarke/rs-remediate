@@ -116,11 +116,9 @@ impl<C: Component> AsComponents<C> for Rc<[C]> {
     }
 }
 
-//impl<C: Component, T: IntoComponents<C>> From<T> for &dyn AsComponents<C> {}
-
 #[macro_export]
 macro_rules! loc {
-    ($($x:expr),*; $sty:ty) => {
+    ([$($x:expr),*] as $sty:ty) => {
         &[$(&<_ as IntoComponents<$sty>>::into_components($x).as_components() as &dyn AsComponents<$sty>),*] as &[&dyn AsComponents<$sty>]
     };
 }

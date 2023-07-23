@@ -7,29 +7,12 @@ use std::{
 
 use pathdiff::diff_paths;
 
-use super::{Component, IntoComponents, Workspace};
+use super::{Component, Workspace};
 
 #[derive(Debug)]
 pub struct LocalWorkspace {
     root: Rc<str>,
 }
-
-/*#[derive(Clone)]
-pub struct Path(Vec<Rc<str>>);
-
-impl Relative for Path {
-    fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    fn from_str(str: &str) -> Self {
-        Self(vec![str.into()])
-    }
-
-    fn push(&mut self, other: &Self) {
-        self.0.extend_from_slice(other.0.as_slice())
-    }
-}*/
 
 impl LocalWorkspace {
     pub fn new(root: Rc<str>) -> Self {
@@ -59,16 +42,6 @@ impl LocalWorkspace {
         components.into()
     }
 }
-
-/*impl From<Path> for PathBuf {
-    fn from(value: Path) -> Self {
-        let path = Self::new();
-        for component in value.0 {
-            path.push(component.as_ref());
-        }
-        path
-    }
-}*/
 
 impl Component for Rc<str> {}
 

@@ -14,7 +14,7 @@ impl Rem {
                 }
                 _ => (),
             }
-            for id in self.descendents() {
+            for id in self.descendants() {
                 card_buffer.extend_at(id, content.clone());
             }
         }
@@ -26,16 +26,16 @@ impl Rem {
         }
     }
 
-    fn descendents(&self) -> Vec<Rc<str>> {
+    fn descendants(&self) -> Vec<Rc<str>> {
         let mut vec = Vec::new();
-        self.add_descendents(&mut vec);
+        self.add_descendants(&mut vec);
         vec
     }
 
-    fn add_descendents(&self, vec: &mut Vec<Rc<str>>) {
+    fn add_descendants(&self, vec: &mut Vec<Rc<str>>) {
         vec.push(self.id());
         for child in self.children().iter() {
-            child.add_descendents(vec);
+            child.add_descendants(vec);
         }
     }
 }
