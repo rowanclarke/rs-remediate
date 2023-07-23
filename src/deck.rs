@@ -85,14 +85,16 @@ impl From<Document> for Deck {
 impl ArchivedDeck {
     pub fn get_card(&self, id: &str) -> Card {
         self.cards
-            .get(dbg!(id))
+            .get(id)
             .unwrap()
             .deserialize(&mut SharedDeserializeMap::new())
             .unwrap()
     }
 
     pub fn load<W: Workspace>(workspace: &W, location: &[W::Component]) -> Rc<Self> {
-        dbg!(workspace.read(loc!([DIR, PATH, location] as W::Component))).cast()
+        workspace
+            .read(loc!([DIR, PATH, location] as W::Component))
+            .cast()
     }
 }
 
