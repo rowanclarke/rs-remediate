@@ -12,4 +12,4 @@ document = { (rem ~ "\n")* }
 			closure = { "(" ~ location ~ group ~ ")[" ~ text ~ "]" }
 				group = { ASCII_ALPHA_UPPER+ }
 				location = { "^"* }
-        child = _{ PEEK[..] ~ PUSH(TAB) ~ rem ~ DROP }
+		child = _{ PEEK[..] ~ PUSH(TAB) ~ rem ~ DROP }
