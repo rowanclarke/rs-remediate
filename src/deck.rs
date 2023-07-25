@@ -2,14 +2,15 @@ mod cards;
 pub mod document;
 use crate::{
     archive::Cast,
-    loc,
-    workspace::{AsComponents, IntoComponents, Workspace},
-    DIR,
+    loc, loc_root, root,
+    workspace::{AsComponents, Component, IntoComponents, Root, Workspace, WorkspaceRoot},
+    RemedyRoot,
 };
 use rkyv::{ser::serializers::AllocSerializer, ser::Serializer, Archive, Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashSet},
     rc::Rc,
+    str::from_utf8,
 };
 
 pub use document::{Content, Group};
@@ -17,7 +18,7 @@ use rkyv::de::deserializers::SharedDeserializeMap;
 
 use self::document::Document;
 
-const PATH: &str = "documents";
+root!(pub type DeckRoot: RemedyRoot = ["decks"]);
 
 type Cards = BTreeMap<Rc<str>, Card>;
 
@@ -30,12 +31,6 @@ pub struct Deck {
 }
 
 impl Deck {
-    pub fn new() -> Self {
-        Self {
-            cards: Cards::new(),
-        }
-    }
-
     pub fn cards(&self) -> &Cards {
         &self.cards
     }
@@ -44,13 +39,11 @@ impl Deck {
         workspace: &W,
     ) -> impl Iterator<Item = (Self, Rc<[W::Component]>)> + '_ {
         workspace
-            .descendants_from(&[DIR.into(), PATH.into()])
+            .descendants_from::<DeckRoot, _>(())
             .into_iter()
             .map(move |location| {
                 (
-                    Self::deserialize(
-                        workspace.read(loc!([DIR, PATH, location.clone()] as W::Component)),
-                    ),
+                    Self::deserialize(workspace.read::<DeckRoot, _>(location.clone())),
                     location,
                 )
             })
@@ -61,7 +54,13 @@ impl Deck {
         serializer.serialize_value(self).unwrap();
 
         let bytes = serializer.into_serializer().into_inner();
-        workspace.write(loc!([DIR, PATH, location] as W::Component), &bytes[..]);
+        workspace.write::<DeckRoot, _>(location, &bytes[..]);
+    }
+
+    pub fn parse<W: Workspace>(workspace: &W, location: &[W::Component]) -> Self {
+        let input = workspace.read::<WorkspaceRoot, _>(location);
+        let document = Document::parse(from_utf8(input.as_ref()).unwrap()).unwrap();
+        document.into()
     }
 
     fn deserialize(bytes: Rc<[u8]>) -> Self {
@@ -92,9 +91,7 @@ impl ArchivedDeck {
     }
 
     pub fn load<W: Workspace>(workspace: &W, location: &[W::Component]) -> Rc<Self> {
-        workspace
-            .read(loc!([DIR, PATH, location] as W::Component))
-            .cast()
+        workspace.read::<DeckRoot, _>(location).cast()
     }
 }
 

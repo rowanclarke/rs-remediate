@@ -5,8 +5,6 @@ use pest::{error::Error, Parser};
 use rkyv::{Archive, Deserialize, Serialize};
 use std::{rc::Rc, str};
 
-use crate::workspace::Workspace;
-
 #[derive(Debug)]
 pub struct Document {
     rems: Rc<[Rem]>,
@@ -19,7 +17,7 @@ pub struct Rem {
     children: Rc<[Rem]>,
 }
 
-#[derive(Debug, Clone, Archive, Serialize, Deserialize)]
+#[derive(Debug, Clone, Archive, Serialize, Deserialize, Eq, PartialEq)]
 #[archive_attr(derive(Debug))]
 pub enum Content {
     Text(Rc<str>),
@@ -29,13 +27,8 @@ pub enum Content {
 pub type Group = (Rc<str>, Rc<str>);
 
 impl Document {
-    pub fn parse<W: Workspace>(
-        workspace: &W,
-        location: &[W::Component],
-    ) -> Result<Self, Error<Rule>> {
-        let input = workspace.read(location);
-        let mut pairs =
-            DocumentParser::parse(Rule::document, str::from_utf8(input.as_ref()).unwrap())?;
+    pub fn parse(input: &str) -> Result<Self, Error<Rule>> {
+        let mut pairs = DocumentParser::parse(Rule::document, input)?;
         Ok(ast::Document::from_pest(&mut pairs).unwrap().into())
     }
 

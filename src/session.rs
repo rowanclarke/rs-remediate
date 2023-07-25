@@ -3,10 +3,9 @@ mod entry;
 use crate::{
     archive::{impls::reverse::Reverse, with::AsBoxedSlice, Cast},
     deck::Deck,
-    loc,
     schedule::Review,
-    workspace::{AsComponents, Component, IntoComponents, Workspace},
-    DIR,
+    workspace::{Component, Workspace},
+    RemedyRoot,
 };
 pub use entry::Entry;
 use rkyv::{
@@ -14,8 +13,6 @@ use rkyv::{
     Archive, Archived, Deserialize, Serialize,
 };
 use std::{collections::BinaryHeap, fmt::Debug};
-
-const PATH: &str = "session";
 
 #[derive(Debug, Archive, Deserialize, Serialize)]
 #[archive(check_bytes)]
@@ -56,11 +53,11 @@ where
         let mut serializer = SessionSerializer::default();
         serializer.serialize_value(self).unwrap();
         let bytes = serializer.into_serializer().into_inner();
-        workspace.write(loc!([DIR, PATH] as C), &bytes[..]);
+        workspace.write::<RemedyRoot, _>("session", &bytes[..]);
     }
 
     pub fn load<W: Workspace<Component = C>>(workspace: &W) -> Self {
-        (workspace.read(loc!([DIR, PATH] as C)).as_ref().cast() as &Archived<Self>)
+        (workspace.read::<RemedyRoot, _>("session").as_ref().cast() as &Archived<Self>)
             .deserialize(&mut SharedDeserializeMap::new())
             .unwrap()
     }

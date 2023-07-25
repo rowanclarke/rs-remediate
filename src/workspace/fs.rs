@@ -1,26 +1,25 @@
 use std::{
-    fs::{read_dir, File},
+    fs::{create_dir_all, read_dir, File},
     path::{self, Path, PathBuf},
     rc::Rc,
-    str::FromStr,
 };
 
 use pathdiff::diff_paths;
 
-use super::{Component, Workspace};
+use super::{Access, Component, Workspace};
 
 #[derive(Debug)]
 pub struct LocalWorkspace {
-    root: Rc<str>,
+    root: PathBuf,
 }
 
 impl LocalWorkspace {
-    pub fn new(root: Rc<str>) -> Self {
+    pub fn new(root: PathBuf) -> Self {
         Self { root }
     }
 
     fn absolute(&self, location: &[<Self as Workspace>::Component]) -> PathBuf {
-        let mut path = PathBuf::from_str(self.root.as_ref()).unwrap();
+        let mut path = self.root.clone();
         for component in location.iter() {
             path.push(component.clone().as_ref());
         }
@@ -29,7 +28,7 @@ impl LocalWorkspace {
 
     pub fn relative<P: AsRef<Path>>(&self, path: P) -> Rc<[<Self as Workspace>::Component]> {
         let mut components = Vec::new();
-        for component in diff_paths(path, self.root.as_ref())
+        for component in diff_paths(path, &self.root)
             .unwrap()
             .components()
             .filter_map(|c| match c {
@@ -49,12 +48,15 @@ impl Workspace for LocalWorkspace {
     type Component = Rc<str>;
     type Source = File;
 
-    fn open(&self, location: &[Self::Component]) -> Self::Source {
-        File::open::<PathBuf>(self.absolute(location)).unwrap()
+    fn get_source(&self, location: &[Self::Component], access: Access) -> Self::Source {
+        match access {
+            Access::Read => File::open::<PathBuf>(self.absolute(location)).unwrap(),
+            Access::Write => File::create::<PathBuf>(self.absolute(location)).unwrap(),
+        }
     }
 
-    fn create(&self, location: &[Self::Component]) -> Self::Source {
-        File::create::<PathBuf>(self.absolute(location)).unwrap()
+    fn make_component(&self, location: &[Self::Component]) {
+        create_dir_all(self.absolute(location)).unwrap();
     }
 
     fn insert_descendants(

@@ -6,4 +6,10 @@ pub mod session;
 #[macro_use]
 pub mod workspace;
 
-const DIR: &str = ".rem";
+#[cfg(test)]
+mod tests;
+
+use std::rc::Rc;
+use workspace::{AsComponents, Component, IntoComponents, Root};
+
+root!(pub type RemedyRoot = [".rem"]);
