@@ -1,0 +1,15 @@
+HEX = _{ 'a'..'f' | '0'..'9' }
+ILLEGAL = _{ "\\" | "<" | ">" | "(" | ")" | "[" | "]" }
+ESCAPED = _{ "\\" ~ ILLEGAL }
+CHAR = _{ (!ILLEGAL ~ ASCII) | ESCAPED }
+TAB = _{ "\t" | "  " }
+
+document = { (rem ~ "\n")* }
+	rem = { "<" ~ id ~ (" " | "\n") ~ content+ ~ ">" ~ ("\n" ~ child)* }
+		id = { HEX{8} }
+		content = { text | closure }
+			text = { CHAR+ }
+			closure = { "(" ~ location ~ group ~ ")[" ~ text ~ "]" }
+				group = { ASCII_ALPHA_UPPER+ }
+				location = { "^"* }
+		child = _{ PEEK[..] ~ PUSH(TAB) ~ rem ~ DROP }
