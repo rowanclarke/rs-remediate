@@ -1,4 +1,4 @@
-#![feature(return_position_impl_trait_in_trait, extend_one, binary_heap_as_slice)]
+#![feature(extend_one, binary_heap_as_slice)]
 mod archive;
 pub mod deck;
 pub mod schedule;
