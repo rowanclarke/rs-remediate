@@ -1,4 +1,4 @@
-#![feature(extend_one, binary_heap_as_slice)]
+#![feature(extend_one)]
 mod archive;
 pub mod deck;
 pub mod schedule;

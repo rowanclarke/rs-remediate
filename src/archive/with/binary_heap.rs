@@ -1,4 +1,4 @@
-use super::AsBoxedSlice;
+use super::AsVec;
 use rkyv::{
     ser::{ScratchSpace, Serializer},
     with::{ArchiveWith, DeserializeWith, SerializeWith},
@@ -6,9 +6,9 @@ use rkyv::{
 };
 use std::collections::BinaryHeap;
 
-impl<T: Archive> ArchiveWith<BinaryHeap<T>> for AsBoxedSlice<T> {
-    type Archived = Archived<Box<[T]>>;
-    type Resolver = Resolver<Box<[T]>>;
+impl<T: Archive> ArchiveWith<BinaryHeap<T>> for AsVec {
+    type Archived = Archived<Vec<T>>;
+    type Resolver = Resolver<Vec<T>>;
 
     unsafe fn resolve_with(
         field: &BinaryHeap<T>,
@@ -16,31 +16,39 @@ impl<T: Archive> ArchiveWith<BinaryHeap<T>> for AsBoxedSlice<T> {
         resolver: Self::Resolver,
         out: *mut Self::Archived,
     ) {
-        Self::Archived::resolve_from_ref(field.as_slice(), pos, resolver, out)
+        let ptr = field as *const BinaryHeap<T> as *const Vec<T>;
+        Self::Archived::resolve_from_slice(&*ptr, pos, resolver, out)
     }
 }
 
 impl<T: Archive + Serialize<S>, S: ScratchSpace + Serializer + ?Sized>
-    SerializeWith<BinaryHeap<T>, S> for AsBoxedSlice<T>
+    SerializeWith<BinaryHeap<T>, S> for AsVec
 {
     fn serialize_with(
         field: &BinaryHeap<T>,
         serializer: &mut S,
     ) -> Result<Self::Resolver, <S as Fallible>::Error> {
-        Self::Archived::serialize_from_ref(field.as_slice(), serializer)
+        let ptr = field as *const BinaryHeap<T> as *const Vec<T>;
+        Self::Archived::serialize_from_slice(unsafe { &*ptr }, serializer)
     }
 }
 
-impl<T: Archive + Ord, D: Fallible + ?Sized> DeserializeWith<Archived<Box<[T]>>, BinaryHeap<T>, D>
-    for AsBoxedSlice<T>
+impl<T: Archive + Ord, D: Fallible + ?Sized> DeserializeWith<Archived<Vec<T>>, BinaryHeap<T>, D>
+    for AsVec
 where
     [Archived<T>]: DeserializeUnsized<[T], D>,
 {
     fn deserialize_with(
-        field: &Archived<Box<[T]>>,
+        field: &Archived<Vec<T>>,
         deserializer: &mut D,
     ) -> Result<BinaryHeap<T>, <D as Fallible>::Error> {
-        let vec: Box<[T]> = field.deserialize(deserializer)?;
-        Ok(vec.into_vec().into())
+        field.as_slice();
+        let data = field.deserialize(deserializer)?;
+        let mut heap = BinaryHeap::<T>::new();
+        let ptr = &mut heap as *mut BinaryHeap<T> as *mut Vec<T>;
+        unsafe {
+            ptr.write(data);
+        }
+        Ok(heap)
     }
 }
