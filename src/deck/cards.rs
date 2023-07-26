@@ -51,7 +51,7 @@ where
 {
     fn extend_at(&mut self, key: K, value: T) {
         if let Some(inner) = self.get_mut(&key) {
-            inner.extend_one(value);
+            inner.extend([value]);
         } else {
             self.insert(key, [value].into());
         }

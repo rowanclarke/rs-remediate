@@ -1,7 +1,7 @@
 mod entry;
 
 use crate::{
-    archive::{impls::reverse::Reverse, with::AsBoxedSlice, Cast},
+    archive::{impls::reverse::Reverse, with::AsVec, Cast},
     deck::Deck,
     schedule::Review,
     workspace::{Component, Workspace},
@@ -12,17 +12,16 @@ use rkyv::{
     de::deserializers::SharedDeserializeMap, ser::serializers::AllocSerializer, ser::Serializer,
     Archive, Archived, Deserialize, Serialize,
 };
-use std::{collections::BinaryHeap, fmt::Debug};
+use std::collections::BinaryHeap;
 
 #[derive(Debug, Archive, Deserialize, Serialize)]
 #[archive(check_bytes)]
 pub struct Session<C, D> {
-    #[with(AsBoxedSlice<SessionQueueInner<C, D>>)]
+    #[with(AsVec)]
     queue: SessionQueue<C, D>,
 }
 
-type SessionQueue<C, D> = BinaryHeap<SessionQueueInner<C, D>>;
-type SessionQueueInner<C, D> = Reverse<Entry<C, D>>;
+type SessionQueue<C, D> = BinaryHeap<Reverse<Entry<C, D>>>;
 type SessionSerializer = AllocSerializer<1024>;
 
 impl<
