@@ -1,15 +1,20 @@
 HEX = _{ 'a'..'f' | '0'..'9' }
-ILLEGAL = _{ "\\" | "<" | ">" | "(" | ")" | "[" | "]" }
-ESCAPED = _{ "\\" ~ ILLEGAL }
-CHAR = _{ (!ILLEGAL ~ ASCII) | ESCAPED }
-TAB = _{ "\t" | "  " }
+ILLEGAL = _{ "\n" | "·" }
+CHAR = _{ !ILLEGAL ~ ASCII }
+TAB = _{ "  " }
+
+REM_CURRENT = _{ "\n" ~ PEEK[..] ~ TAB }
+REM_FOLLOWS = _{ "\n" ~ TAB* ~ "•" }
 
 document = { (rem ~ "\n")* }
-	rem = { "<" ~ id ~ (" " | "\n") ~ content+ ~ ">" ~ ("\n" ~ child)* }
+	rem = { "• " ~ id ~ (&"\n" | " ") ~ content+ ~ ("\n" ~ child)* }
 		id = { HEX{8} }
 		content = { text | closure }
-			text = { CHAR+ }
-			closure = { "(" ~ location ~ group ~ ")[" ~ text ~ "]" }
+			text = { segment+ }
+				segment = { newline | line }
+            		line = { CHAR+ }
+                	newline = { !REM_FOLLOWS ~ REM_CURRENT }
+			closure = { "·" ~ location ~ group ~ "·" ~ text ~ "·" }
 				group = { ASCII_ALPHA_UPPER+ }
 				location = { "^"* }
 		child = _{ PEEK[..] ~ PUSH(TAB) ~ rem ~ DROP }

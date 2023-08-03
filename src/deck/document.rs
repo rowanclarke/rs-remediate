@@ -20,11 +20,20 @@ pub struct Rem {
 #[derive(Debug, Clone, Archive, Serialize, Deserialize, Eq, PartialEq)]
 #[archive_attr(derive(Debug))]
 pub enum Content {
-    Text(Rc<str>),
-    Closure(Group, Rc<str>),
+    Text(Text),
+    Closure(Group, Text),
 }
 
 pub type Group = (Rc<str>, Rc<str>);
+
+pub type Text = Rc<str>;
+
+#[derive(Debug, Clone, Archive, Serialize, Deserialize, Eq, PartialEq)]
+#[archive_attr(derive(Debug))]
+pub enum Segment {
+    NewLine,
+    Line(Box<str>),
+}
 
 impl Document {
     pub fn parse(input: &str) -> Result<Self, Error<Rule>> {
@@ -78,7 +87,18 @@ mod ast {
 
     impl From<Document> for super::Document {
         fn from(value: Document) -> Self {
-            fn resolve((mut parents, rem): (Vec<Rc<str>>, Rem)) -> super::Rem {
+            fn resolve_text(lines: Vec<Segment>) -> super::Text {
+                lines
+                    .iter()
+                    .map(|line| match line {
+                        Segment::Line(Line(line)) => line.as_ref(),
+                        Segment::NewLine(_) => "\n",
+                    })
+                    .flat_map(|s| s.chars())
+                    .collect::<String>()
+                    .into()
+            }
+            fn resolve_rem((mut parents, rem): (Vec<Rc<str>>, Rem)) -> super::Rem {
                 parents.push(rem.id.0.clone());
                 super::Rem {
                     id: rem.id.0,
@@ -86,14 +106,14 @@ mod ast {
                         .content
                         .into_iter()
                         .map(|content| match content {
-                            Content::Text(Text(text)) => super::Content::Text(text),
+                            Content::Text(Text(text)) => super::Content::Text(resolve_text(text)),
                             Content::Closure(Closure {
                                 location: Location(location),
                                 group: Group(group),
                                 text: Text(text),
                             }) => super::Content::Closure(
                                 (parents[parents.len() - location - 1].clone(), group),
-                                text,
+                                resolve_text(text),
                             ),
                         })
                         .collect::<Vec<_>>()
@@ -102,7 +122,7 @@ mod ast {
                         .children
                         .into_iter()
                         .map(|rem| (parents.clone(), rem))
-                        .map(resolve)
+                        .map(resolve_rem)
                         .collect::<Vec<_>>()
                         .into(),
                 }
@@ -112,7 +132,7 @@ mod ast {
                     .rems
                     .into_iter()
                     .map(|rem| (Vec::<Rc<str>>::new(), rem))
-                    .map(resolve)
+                    .map(resolve_rem)
                     .collect::<Vec<_>>()
                     .into(),
             }
@@ -140,7 +160,22 @@ mod ast {
 
     #[derive(Debug, FromPest, Clone)]
     #[pest_ast(rule(Rule::text))]
-    struct Text(#[pest_ast(outer(with(as_str)))] Rc<str>);
+    struct Text(Vec<Segment>);
+
+    #[derive(Debug, FromPest, Clone)]
+    #[pest_ast(rule(Rule::segment))]
+    enum Segment {
+        Line(Line),
+        NewLine(NewLine),
+    }
+
+    #[derive(Debug, FromPest, Clone)]
+    #[pest_ast(rule(Rule::line))]
+    struct Line(#[pest_ast(outer(with(as_str)))] Rc<str>);
+
+    #[derive(Debug, FromPest, Clone)]
+    #[pest_ast(rule(Rule::newline))]
+    struct NewLine(#[pest_ast(outer(with(empty)))] ());
 
     #[derive(Debug, FromPest, Clone)]
     #[pest_ast(rule(Rule::closure))]
@@ -164,5 +199,9 @@ mod ast {
 
     fn as_str(span: Span) -> Rc<str> {
         span.as_str().into()
+    }
+
+    fn empty(_: Span) -> () {
+        ()
     }
 }
