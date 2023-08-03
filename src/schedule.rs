@@ -6,6 +6,7 @@ pub trait Review: Ord + Default {
     fn review(&mut self, score: Self::Score);
 }
 
+#[deprecated]
 pub trait Query {
     fn query() -> Self;
 }

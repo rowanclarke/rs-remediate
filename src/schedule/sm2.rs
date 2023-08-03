@@ -14,7 +14,7 @@ pub struct Data {
     interval: u32,
 }
 
-#[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone)]
+#[derive(IntoPrimitive, TryFromPrimitive, Copy, PartialEq, Eq, Clone)]
 #[repr(u8)]
 pub enum Score {
     Awful = 0,

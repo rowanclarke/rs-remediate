@@ -7,10 +7,15 @@ use std::{collections::BTreeMap, rc::Rc};
 impl Rem {
     pub fn insert_into(&self, cards: &mut Cards, depth: usize) {
         let mut card_buffer: BTreeMap<Rc<str>, Vec<Content>> = BTreeMap::new();
-        for content in self.content().iter() {
+        let content = self.content();
+        let mut iter = content.iter().peekable();
+        while let Some(content) = iter.next() {
             match content {
                 Content::Closure((id, _), _) if id.clone() != self.id() => {
-                    card_buffer.extend_at(id.clone(), content.clone())
+                    card_buffer.extend_at(id.clone(), content.clone());
+                    if iter.peek().is_some() {
+                        card_buffer.extend_at(id.clone(), Content::Text(" ... ".into()));
+                    }
                 }
                 _ => (),
             }

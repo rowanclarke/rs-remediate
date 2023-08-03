@@ -13,7 +13,7 @@ use std::{
     str::from_utf8,
 };
 
-pub use document::{Content, Group};
+pub use document::{Content, Group, Segment, Text};
 use rkyv::de::deserializers::SharedDeserializeMap;
 
 use self::document::Document;

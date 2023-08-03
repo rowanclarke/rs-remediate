@@ -1,6 +1,6 @@
 [package]
 name = "remediate"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Rowan Clarke <36474636+rowanclarke@users.noreply.github.com>"]
 license = "MIT"
 description = "Library for thinking and learning"
