@@ -27,16 +27,16 @@ impl LocalWorkspace {
     }
 
     pub fn relative<P: AsRef<Path>>(&self, path: P) -> Rc<[<Self as Workspace>::Component]> {
+        self.components(diff_paths(path, &self.root).unwrap())
+    }
+
+    pub fn components<P: AsRef<Path>>(&self, path: P) -> Rc<[<Self as Workspace>::Component]> {
         let mut components = Vec::new();
-        for component in diff_paths(path, &self.root)
-            .unwrap()
-            .components()
-            .filter_map(|c| match c {
-                path::Component::Normal(s) => s.to_str(),
-                _ => None,
-            })
-        {
-            components.push(component.into());
+        for component in path.as_ref().components().filter_map(|c| match c {
+            path::Component::Normal(s) => s.to_str(),
+            _ => None,
+        }) {
+            components.push(component.into())
         }
         components.into()
     }
