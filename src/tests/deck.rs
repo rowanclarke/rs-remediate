@@ -1,4 +1,7 @@
-use crate::deck::{document::Document, Content, Deck};
+use crate::{
+    deck::Deck,
+    document::{Content, Document},
+};
 
 #[test]
 fn closure_gen() {

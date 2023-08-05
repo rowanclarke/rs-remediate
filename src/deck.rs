@@ -1,22 +1,18 @@
 mod cards;
-pub mod document;
 use crate::{
     archive::Cast,
+    document::{Content, Document, Group},
     loc, loc_root, root,
     workspace::{AsComponents, Component, IntoComponents, Root, Workspace, WorkspaceRoot},
     RemedyRoot,
 };
+use rkyv::de::deserializers::SharedDeserializeMap;
 use rkyv::{ser::serializers::AllocSerializer, ser::Serializer, Archive, Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashSet},
     rc::Rc,
     str::from_utf8,
 };
-
-pub use document::{Content, Group, Segment, Text};
-use rkyv::de::deserializers::SharedDeserializeMap;
-
-use self::document::Document;
 
 root!(pub type DeckRoot: RemedyRoot = ["decks"]);
 

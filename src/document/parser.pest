@@ -7,13 +7,14 @@ REM_CURRENT = _{ "\n" ~ PEEK[..] ~ TAB }
 REM_FOLLOWS = _{ "\n" ~ TAB* ~ "•" }
 
 document = { (rem ~ "\n")* }
-	rem = { "• " ~ id ~ (&"\n" | " ") ~ content+ ~ ("\n" ~ child)* }
+	rem = { "• " ~ id ~ (":" ~ tag)* ~ (&"\n" | " ") ~ content+ ~ ("\n" ~ child)* }
 		id = { HEX{8} }
+		tag = { (ASCII_ALPHA_LOWER | "-")+ }
 		content = { text | closure }
 			text = { segment+ }
 				segment = { newline | line }
             		line = { CHAR+ }
-                	newline = { !REM_FOLLOWS ~ REM_CURRENT }
+					newline = { !REM_FOLLOWS ~ REM_CURRENT }
 			closure = { "·" ~ location ~ group ~ "·" ~ text ~ "·" }
 				group = { ASCII_ALPHA_UPPER+ }
 				location = { "^"* }

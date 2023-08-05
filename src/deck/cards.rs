@@ -1,7 +1,5 @@
-use super::{
-    document::{Content, Rem},
-    Cards,
-};
+use super::Cards;
+use crate::document::{Content, Rem};
 use std::{collections::BTreeMap, rc::Rc};
 
 impl Rem {
